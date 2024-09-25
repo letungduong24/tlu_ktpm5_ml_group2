@@ -1,8 +1,0 @@
-.vercel
-__pycache__/
-*.pyc
-*.pyo
-instance/
-.env
-.vscode/
-.idea/
