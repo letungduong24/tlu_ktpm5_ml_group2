@@ -1,187 +1,66 @@
-from flask import Flask, render_template, request, jsonify
+import streamlit as st
 import pandas as pd
+import joblib
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import StackingRegressor
-from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.datasets import fetch_california_housing
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
-from sklearn.neural_network import MLPRegressor
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.datasets import fetch_california_housing
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import StackingRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-import matplotlib.pyplot as plt
-
-app = Flask(__name__)
 
 # Import data, khai báo features và target
 ca_housing = fetch_california_housing()
 X = ca_housing.data
 y = ca_housing.target
 
-# Xử lí dữ liệu
+# Xử lý dữ liệu
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
 
+# Load mô hình
+lasso = joblib.load('models/lasso_model.pkl')
+linear = joblib.load('models/linear_model.pkl')
+mlp = joblib.load('models/mlp_model.pkl')
+stacking_regressor = joblib.load('models/stacking_model.pkl')
 
-# Tạo mô hình và tối ưu
-param_grid_lasso = {
-    'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000]
-}
-# Lasso
-baseLasso = Lasso()
-lasso = GridSearchCV(baseLasso, param_grid_lasso, cv=3, n_jobs=-1)
-lasso.fit(X_train, y_train)
+# Predict với tập dữ liệu test
 y_pred_lasso = lasso.predict(X_test)
-lassoMAE = mean_absolute_error(y_test, y_pred_lasso)
-lassoMSE = mean_squared_error(y_test, y_pred_lasso)
-lassoR2 = r2_score(y_test, y_pred_lasso)
-print(f'Lasso - MAE: {lassoMAE}, MSE: {lassoMSE}, R²: {lassoR2}')
-
-# Linear Regression
-linear = LinearRegression()
-linear.fit(X_train, y_train)
 y_pred_linear = linear.predict(X_test)
-linearMAE = mean_absolute_error(y_test, y_pred_linear)
-linearMSE = mean_squared_error(y_test, y_pred_linear)
-linearR2 = r2_score(y_test, y_pred_linear)
-print(f'Linear Regression - MAE: {linearMAE}, MSE: {linearMSE}, R²: {linearR2}')
-
-# MLP Regressor with Early Stopping
-mlp = MLPRegressor(
-    hidden_layer_sizes=(50,),         # Kích thước lớp ẩn
-    max_iter=500,                      # Số vòng lặp tối đa
-    early_stopping=True,               # Bật early stopping
-    validation_fraction=0.1,           # Tỷ lệ dữ liệu dùng để validation
-    n_iter_no_change=10,               # Số vòng lặp không thay đổi hiệu suất trước khi dừng
-    random_state=1                     # Hạt giống để tái lập kết quả
-)
-mlp.fit(X_train, y_train)
 y_pred_mlp = mlp.predict(X_test)
-mlpMAE = mean_absolute_error(y_test, y_pred_mlp)
-mlpMSE = mean_squared_error(y_test, y_pred_mlp)
-mlpR2 = r2_score(y_test, y_pred_mlp)
-print(f'MLP - MAE: {mlpMAE}, MSE: {mlpMSE}, R²: {mlpR2}')
-
-# Stacking Regressor
-base_models = [
-    ('linear', LinearRegression()),
-    ('lasso', lasso.best_estimator_),
-    ('mlp', mlp)
-]
-stacking_regressor = StackingRegressor(estimators=base_models, final_estimator=LinearRegression(), n_jobs=-1)  # Sử dụng n_jobs để chạy song song
-stacking_regressor.fit(X_train, y_train)
 y_pred_stacking = stacking_regressor.predict(X_test)
-stackingMAE = mean_absolute_error(y_test, y_pred_stacking)
-stackingMSE = mean_squared_error(y_test, y_pred_stacking)
-stackingR2 = r2_score(y_test, y_pred_stacking)
-print(f'Stacking Regressor - MAE: {stackingMAE}, MSE: {stackingMSE}, R²: {stackingR2}')
 
+# Đánh giá mô hình
+def evaluate_model(y_true, y_pred):
+    mae = mean_absolute_error(y_true, y_pred)
+    mse = mean_squared_error(y_true, y_pred)
+    r2 = r2_score(y_true, y_pred)
+    return mae, mse, r2
 
-# Vẽ đồ thị
-errors_lasso = y_test - y_pred_lasso
-errors_linear = y_test - y_pred_linear
-errors_mlp = y_test - y_pred_mlp
-errors_stacking = y_test - y_pred_stacking
+# Đánh giá các mô hình
+lassoMAE, lassoMSE, lassoR2 = evaluate_model(y_test, y_pred_lasso)
+linearMAE, linearMSE, linearR2 = evaluate_model(y_test, y_pred_linear)
+mlpMAE, mlpMSE, mlpR2 = evaluate_model(y_test, y_pred_mlp)
+stackingMAE, stackingMSE, stackingR2 = evaluate_model(y_test, y_pred_stacking)
 
-plt.figure(figsize=(24, 8))
+# Giao diện nhập liệu
+st.title("Dự đoán giá nhà với nhiều mô hình")
 
-# Đồ thị phân phối sai số
-plt.figure(figsize=(24, 8))
+st.write("Nhập dữ liệu để dự đoán:")
+medInc = st.number_input("Median Income")
+houseAge = st.number_input("House Age")
+aveRooms = st.number_input("Average Rooms")
+aveBedrms = st.number_input("Average Bedrooms")
+population = st.number_input("Population")
+aveOccup = st.number_input("Average Occupancy")
+latitude = st.number_input("Latitude")
+longitude = st.number_input("Longitude")
 
-plt.subplot(1, 4, 1)
-plt.hist(errors_lasso, bins=50, edgecolor='k')
-plt.title('Lasso - Phân phối sai số')
-plt.xlabel('Error')
-plt.ylabel('Frequency')
-
-plt.subplot(1, 4, 2)
-plt.hist(errors_linear, bins=50, edgecolor='k')
-plt.title('Linear Regression - Phân phối sai số')
-plt.xlabel('Error')
-plt.ylabel('Frequency')
-
-plt.subplot(1, 4, 3)
-plt.hist(errors_mlp, bins=50, edgecolor='k')
-plt.title('MLP - Phân phối sai số')
-plt.xlabel('Error')
-plt.ylabel('Frequency')
-
-plt.subplot(1, 4, 4)
-plt.hist(errors_stacking, bins=50, edgecolor='k')
-plt.title('Stacking - Phân phối sai số')
-plt.xlabel('Khoảng sai số')
-plt.ylabel('Số lượng sai số')
-
-plt.tight_layout()
-# Lưu đồ thị phân phối sai số
-plt.savefig('static/error_distribution.png')
-plt.close()
-
-# Đồ thị so sánh giá trị thực và dự đoán
-plt.figure(figsize=(24, 6))
-
-plt.subplot(1, 4, 1)
-plt.scatter(y_test, y_pred_lasso, alpha=0.5)
-plt.plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red', linestyle='--')
-plt.title('Lasso - Đồ thị')
-plt.xlabel('Giá trị thực tế')
-plt.ylabel('Giá trị dự đoán')
-
-plt.subplot(1, 4, 2)
-plt.scatter(y_test, y_pred_linear, alpha=0.5)
-plt.plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red', linestyle='--')
-plt.title('Linear Regression - Đồ thị')
-plt.xlabel('Giá trị thực tế')
-plt.ylabel('Giá trị dự đoán')
-
-plt.subplot(1, 4, 3)
-plt.scatter(y_test, y_pred_mlp, alpha=0.5)
-plt.plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red', linestyle='--')
-plt.title('MLP - Đồ thị')
-plt.xlabel('Giá trị thực tế')
-plt.ylabel('Giá trị dự đoán')
-
-plt.subplot(1, 4, 4)
-plt.scatter(y_test, y_pred_stacking, alpha=0.5)
-plt.plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red', linestyle='--')
-plt.title('Stacking - Đồ thị')
-plt.xlabel('Giá trị thực tế')
-plt.ylabel('Giá trị dự đoán')
-
-plt.tight_layout()
-# Lưu đồ thị so sánh giá trị thực và dự đoán
-plt.savefig('static/predict_distributton.png')
-plt.close()
-
-
-# Route để hiển thị form nhập liệu
-@app.route('/')
-def home():
-    return render_template('index.html')
-
-# Route để xử lý dự đoán
-@app.route('/predict', methods=['POST'])
-def predict():
-    medInc = float(request.form['med-inc'])
-    houseAge = float(request.form['house-age'])
-    aveRooms = float(request.form['ave-rooms'])
-    aveBedrms = float(request.form['ave-bedrms'])
-    population = float(request.form['population'])
-    aveOccup = float(request.form['ave-occup'])
-    latitude = float(request.form['latitude'])
-    longitude = float(request.form['longitude'])
-
-
-    # Dữ liệu mới từ người dùng
+# Khi người dùng bấm nút Dự đoán
+if st.button("Dự đoán"):
     new_data = [[medInc, houseAge, aveRooms, aveBedrms, population, aveOccup, latitude, longitude]]
     
     # Dự đoán với các mô hình
@@ -189,27 +68,86 @@ def predict():
     prediction_lasso = lasso.predict(new_data)[0]
     prediction_mlp = mlp.predict(new_data)[0]
     prediction_stacking = stacking_regressor.predict(new_data)[0]
-    
-    
-    # Trả về dữ liệu dự đoán, MSE và trạng thái của mô hình dưới dạng JSON
-    return jsonify({
-        'prediction_linear': prediction_linear,
-        'prediction_lasso': prediction_lasso,
-        'prediction_mlp': prediction_mlp,
-        'prediction_stacking': prediction_stacking,
-        'mse_linear': linearMSE,
-        'mse_lasso': lassoMSE,
-        'mse_mlp': mlpMSE,
-        'mse_stacking': stackingMSE,
-        'mae_linear': linearMAE,
-        'mae_lasso': lassoMAE,
-        'mae_mlp': mlpMAE,
-        'mae_stacking': stackingMAE,
-        'r2_linear': linearR2,
-        'r2_lasso': lassoR2,
-        'r2_mlp': mlpR2,
-        'r2_stacking': stackingR2,
-    })
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    # Hiển thị kết quả dự đoán
+    st.write("### Kết quả dự đoán")
+    st.table(pd.DataFrame({
+        'Model': ['Linear Regression', 'Lasso', 'MLP', 'Stacking'],
+        'Dự đoán': [prediction_linear, prediction_lasso, prediction_mlp, prediction_stacking]
+    }))
+
+    # Hiển thị đánh giá mô hình dưới dạng bảng
+    st.write("### Đánh giá mô hình")
+    st.table(pd.DataFrame({
+        'Model': ['Linear Regression', 'Lasso', 'MLP', 'Stacking'],
+        'MAE': [linearMAE, lassoMAE, mlpMAE, stackingMAE],
+        'MSE': [linearMSE, lassoMSE, mlpMSE, stackingMSE],
+        'R²': [linearR2, lassoR2, mlpR2, stackingR2]
+    }))
+
+    # Hiển thị đồ thị sai số
+    st.write("### Đồ thị sai số")
+    errors_lasso = y_test - y_pred_lasso
+    errors_linear = y_test - y_pred_linear
+    errors_mlp = y_test - y_pred_mlp
+    errors_stacking = y_test - y_pred_stacking
+
+    fig, axs = plt.subplots(1, 4, figsize=(24, 8))
+
+    axs[0].hist(errors_lasso, bins=50, edgecolor='k')
+    axs[0].set_title('Lasso - Phân phối sai số')
+    axs[0].set_xlabel('Error')
+    axs[0].set_ylabel('Frequency')
+
+    axs[1].hist(errors_linear, bins=50, edgecolor='k')
+    axs[1].set_title('Linear Regression - Phân phối sai số')
+    axs[1].set_xlabel('Error')
+    axs[1].set_ylabel('Frequency')
+
+    axs[2].hist(errors_mlp, bins=50, edgecolor='k')
+    axs[2].set_title('MLP - Phân phối sai số')
+    axs[2].set_xlabel('Error')
+    axs[2].set_ylabel('Frequency')
+
+    axs[3].hist(errors_stacking, bins=50, edgecolor='k')
+    axs[3].set_title('Stacking - Phân phối sai số')
+    axs[3].set_xlabel('Error')
+    axs[3].set_ylabel('Frequency')
+
+    st.pyplot(fig)
+
+    # Đồ thị so sánh giá trị thực và dự đoán
+    st.write("### So sánh giá trị thực và dự đoán")
+
+    fig, axs = plt.subplots(1, 4, figsize=(24, 6))
+
+    # Đồ thị Lasso
+    axs[0].scatter(y_test, y_pred_lasso, alpha=0.5)
+    axs[0].plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red', linestyle='--')
+    axs[0].set_title('Lasso - So sánh giá trị')
+    axs[0].set_xlabel('Giá trị thực tế')
+    axs[0].set_ylabel('Giá trị dự đoán')
+
+    # Đồ thị Linear Regression
+    axs[1].scatter(y_test, y_pred_linear, alpha=0.5)
+    axs[1].plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red', linestyle='--')
+    axs[1].set_title('Linear Regression - So sánh giá trị')
+    axs[1].set_xlabel('Giá trị thực tế')
+    axs[1].set_ylabel('Giá trị dự đoán')
+
+    # Đồ thị MLP
+    axs[2].scatter(y_test, y_pred_mlp, alpha=0.5)
+    axs[2].plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red', linestyle='--')
+    axs[2].set_title('MLP - So sánh giá trị')
+    axs[2].set_xlabel('Giá trị thực tế')
+    axs[2].set_ylabel('Giá trị dự đoán')
+
+    # Đồ thị Stacking
+    axs[3].scatter(y_test, y_pred_stacking, alpha=0.5)
+    axs[3].plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red', linestyle='--')
+    axs[3].set_title('Stacking - So sánh giá trị')
+    axs[3].set_xlabel('Giá trị thực tế')
+    axs[3].set_ylabel('Giá trị dự đoán')
+
+    plt.tight_layout()
+    st.pyplot(fig)
