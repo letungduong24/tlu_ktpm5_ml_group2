@@ -162,42 +162,43 @@ if st.button("Dự đoán"):
     axs[3].set_ylabel('Frequency')
 
     st.pyplot(fig)
+    # So sánh giá trị thực và dự đoán cho từng mô hình riêng
+    st.write("### So sánh giá trị thực và dự đoán")
 
-    st.write("### So sánh giá trị thực và dự đoán cho từng mô hình")
+    fig, axs = plt.subplots(2, 2, figsize=(16, 12))
 
     # Lasso
-    fig_lasso, ax_lasso = plt.subplots()
-    ax_lasso.scatter(y_test, y_pred_lasso, color='blue', label='Lasso', alpha=0.5)
-    ax_lasso.plot([y.min(), y.max()], [y.min(), y.max()], 'k--', lw=2)
-    ax_lasso.set_xlabel('Giá trị thực')
-    ax_lasso.set_ylabel('Giá trị dự đoán')
-    ax_lasso.set_title('Lasso - So sánh giá trị thực và dự đoán')
-    st.pyplot(fig_lasso)
+    axs[0, 0].scatter(y_test, y_pred_lasso, color='blue', alpha=0.5)
+    axs[0, 0].plot([y.min(), y.max()], [y.min(), y.max()], 'k--', lw=2)
+    axs[0, 0].set_xlabel('Giá trị thực')
+    axs[0, 0].set_ylabel('Giá trị dự đoán')
+    axs[0, 0].set_title('Lasso')
 
     # Linear Regression
-    fig_linear, ax_linear = plt.subplots()
-    ax_linear.scatter(y_test, y_pred_linear, color='green', label='Linear', alpha=0.5)
-    ax_linear.plot([y.min(), y.max()], [y.min(), y.max()], 'k--', lw=2)
-    ax_linear.set_xlabel('Giá trị thực')
-    ax_linear.set_ylabel('Giá trị dự đoán')
-    ax_linear.set_title('Linear Regression - So sánh giá trị thực và dự đoán')
-    st.pyplot(fig_linear)
+    axs[0, 1].scatter(y_test, y_pred_linear, color='green', alpha=0.5)
+    axs[0, 1].plot([y.min(), y.max()], [y.min(), y.max()], 'k--', lw=2)
+    axs[0, 1].set_xlabel('Giá trị thực')
+    axs[0, 1].set_ylabel('Giá trị dự đoán')
+    axs[0, 1].set_title('Linear Regression')
 
     # MLP
-    fig_mlp, ax_mlp = plt.subplots()
-    ax_mlp.scatter(y_test, y_pred_mlp, color='red', label='MLP', alpha=0.5)
-    ax_mlp.plot([y.min(), y.max()], [y.min(), y.max()], 'k--', lw=2)
-    ax_mlp.set_xlabel('Giá trị thực')
-    ax_mlp.set_ylabel('Giá trị dự đoán')
-    ax_mlp.set_title('MLP - So sánh giá trị thực và dự đoán')
-    st.pyplot(fig_mlp)
+    axs[1, 0].scatter(y_test, y_pred_mlp, color='red', alpha=0.5)
+    axs[1, 0].plot([y.min(), y.max()], [y.min(), y.max()], 'k--', lw=2)
+    axs[1, 0].set_xlabel('Giá trị thực')
+    axs[1, 0].set_ylabel('Giá trị dự đoán')
+    axs[1, 0].set_title('MLP')
 
     # Stacking
-    fig_stacking, ax_stacking = plt.subplots()
-    ax_stacking.scatter(y_test, y_pred_stacking, color='orange', label='Stacking', alpha=0.5)
-    ax_stacking.plot([y.min(), y.max()], [y.min(), y.max()], 'k--', lw=2)
-    ax_stacking.set_xlabel('Giá trị thực')
-    ax_stacking.set_ylabel('Giá trị dự đoán')
-    ax_stacking.set_title('Stacking - So sánh giá trị thực và dự đoán')
-    st.pyplot(fig_stacking)
+    axs[1, 1].scatter(y_test, y_pred_stacking, color='orange', alpha=0.5)
+    axs[1, 1].plot([y.min(), y.max()], [y.min(), y.max()], 'k--', lw=2)
+    axs[1, 1].set_xlabel('Giá trị thực')
+    axs[1, 1].set_ylabel('Giá trị dự đoán')
+    axs[1, 1].set_title('Stacking')
+
+    # Điều chỉnh layout cho đẹp
+    plt.tight_layout()
+
+    # Hiển thị biểu đồ
+    st.pyplot(fig)
+
 
