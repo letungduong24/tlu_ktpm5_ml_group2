@@ -16,10 +16,19 @@ ca_housing = fetch_california_housing()
 X = ca_housing.data
 y = ca_housing.target
 
+
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
+
+if os.path.exists('data/california_housing.csv'):
+    print("Da ton tai CSV")
+else:
+    df = pd.DataFrame(ca_housing.data, columns=ca_housing.feature_names)
+    df['MedHouseVal'] = ca_housing.target
+    df.to_csv('data/california_housing.csv', index=False)
+    print("Da xuat CSV")
 
 if os.path.exists('models/lasso_model.pkl'):
     lasso = joblib.load('models/lasso_model.pkl')
@@ -47,8 +56,7 @@ else:
     )
     mlp.fit(X_train, y_train)
 
-    base_models = [
-        ('linear', linear),
+    base_models = [('linear', linear),
         ('lasso', lasso.best_estimator_),
         ('mlp', mlp)
     ]
