@@ -165,7 +165,7 @@ longitude = st.number_input("Longitude",
                           max_value=float(feature_ranges['Longitude']['max']),
                           )
 
-if st.button("Predict"):
+if st.button("Dự đoán"):
     new_data = [[medInc, houseAge, aveRooms, aveBedrms, population, aveOccup, latitude, longitude]]
     
     new_data_scaled = scaler.transform(new_data)
@@ -175,32 +175,31 @@ if st.button("Predict"):
     prediction_mlp = mlp.predict(new_data_scaled)[0]
     prediction_stacking = stacking_regressor.predict(new_data_scaled)[0]
     
-    st.write("### Prediction Results")
-    st.write("Note: Values are in units of $100,000")
+    st.write("### Kết quả dự đoán")
     predictions_df = pd.DataFrame({
-        'Model': ['Linear Regression', 'Lasso', 'MLP', 'Stacking'],
-        'Predicted Price': [prediction_linear, prediction_lasso, prediction_mlp, prediction_stacking]
+        'Mô hình': ['Linear Regression', 'Lasso', 'MLP', 'Stacking'],
+        'Kết quả dự đoán': [prediction_linear, prediction_lasso, prediction_mlp, prediction_stacking]
     })
     st.table(predictions_df)
     
-    st.write("### Model Evaluation")
+    st.write("### Đánh giá mô hình")
     metrics_df = pd.DataFrame({
         'Model': ['Linear Regression', 'Lasso', 'MLP', 'Stacking'],
         'MAE': [linearMAE, lassoMAE, mlpMAE, stackingMAE],
         'MSE': [linearMSE, lassoMSE, mlpMSE, stackingMSE],
         'R²': [linearR2, lassoR2, mlpR2, stackingR2],
-        'Fit Condition': [fit_condition_linear, fit_condition_lasso, fit_condition_mlp, fit_condition_stacking]
+        'Trạng thái': [fit_condition_linear, fit_condition_lasso, fit_condition_mlp, fit_condition_stacking]
     })
     st.table(metrics_df)
     
-    st.write("### Error Distribution Plots")
+    st.write("### Đồ thị phân phối sai số")
     errors_linear = y_test - y_pred_linear
     errors_lasso = y_test - y_pred_lasso
     errors_mlp = y_test - y_pred_mlp
     errors_stacking = y_test - y_pred_stacking
     
     fig, axs = plt.subplots(2, 2, figsize=(15, 10))
-    fig.suptitle('Error Distributions for Different Models')
+    fig.suptitle('Đồ thị phân phối sai số cho mỗi mô hình')
     
     axs[0, 0].hist(errors_linear, bins=50, edgecolor='black')
     axs[0, 0].set_title('Linear Regression')
@@ -225,9 +224,9 @@ if st.button("Predict"):
     plt.tight_layout()
     st.pyplot(fig)
     
-    st.write("### Actual vs Predicted Values")
+    st.write("### Đồ thị phân phối dự đoán")
     fig, axs = plt.subplots(2, 2, figsize=(15, 10))
-    fig.suptitle('Actual vs Predicted Values for Different Models')
+    fig.suptitle('Đồ thị phân phối dự đoán cho mỗi mô hình')
     
     axs[0, 0].scatter(y_test, y_pred_linear, alpha=0.5)
     axs[0, 0].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
